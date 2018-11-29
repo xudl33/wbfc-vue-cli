@@ -1,0 +1,10 @@
+# vscode
+.vscode/
+
+#node
+node_modules/
+
+# local
+*POST*.vue
+temp.vue
+*Test.vue

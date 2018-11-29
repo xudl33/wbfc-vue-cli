@@ -1,0 +1,606 @@
+<%_
+	function analysisDefinition(p){
+		//console.log(p);
+		if(!p){
+			return null;
+		}
+		var defKey = p.replace('#/definitions/', '');
+		var defVal = definitions[defKey];
+		if(!defVal){
+			return null;
+		}
+		// 包含ResultPoJo的是返回值
+		var isPoJo = defKey.indexOf('ResultPoJo') >= 0;
+
+		if(defVal.properties){
+			for(var i in defVal.properties) {
+				// 如果包含ref说明还有子元素
+				var pval = defVal.properties[i];
+				var ref = pval['$ref'];
+				
+				if(ref){
+					// 递归调用
+					defVal.properties[i].model = analysisDefinition(ref);
+				}
+				// 有item说明是array型
+				var items = pval['items'];
+				if(items){
+					defVal.properties[i].model = [ analysisDefinition(items['$ref'])];
+				}
+			}
+		}
+		// console.log("defVal=" + uparse(defVal));
+		return defVal;
+	}
+
+	String.prototype.startWith = function(str){
+		if(str==null || str=="" || this.length == 0 ||str.length > this.length){	
+			return false;
+		}
+		if(this.substring(0, str.length) === str){
+			 return true;
+		} else {
+			 return false;
+		}
+	}
+
+	String.prototype.endWith = function(str){
+		if(str==null || str=="" || this.length == 0 ||str.length > this.length){	
+			return false;
+		}
+		if(this.substring(this.length - str.length) === str){
+		 	return true;
+		} else {
+		 	return false;
+		}
+	}
+
+	function parse(jsonStr){
+		return JSON.parse(jsonStr);
+	}
+
+	function uparse(jsObj){
+		return JSON.stringify(jsObj);
+	}
+
+	function getTabSpace(num, add){
+		if(!add){
+			add = 0;
+		}
+		var tabs = "";
+		for(var i = 0; i < num + add; i++){
+			tabs += "	";
+		}
+		return tabs;
+	}
+	function echoParams(params, recIndex){
+		//console.log("echoParams=" + uparse(params));
+		if(!recIndex){
+			recIndex = 0;
+		}
+		var res = [];
+		res.push("{");
+		res.push("\n");
+		var pLength = 0;
+		for(var i in params.properties){
+			// 由于WbfcTablePage.js中声明了翻页信息，这里可以不生成
+			if(i === 'pageInfo') {
+				continue;
+			}
+			var temp = params.properties[i];
+			var def = getTabSpace(4, recIndex) + i + ": ";
+			var comment = "";
+			if(temp.type === 'array') {
+				var recRes = echoParams(temp.model[0], recIndex + 1);
+				def += '[' + recRes +']';
+			} else if(temp.type === 'object'){
+				var recRes =  "";
+				if(temp.model){
+					recRes = echoParams(temp.model, recIndex + 1);
+				}
+				def += '{' + recRes + '}';
+			} else {
+				// 是否为翻页VO
+				if(temp.$ref && temp.$ref.indexOf('#/definitions/Page«') >= 0){
+					//console.log("vo:" + uparse(temp.model.properties.list.model[0]));
+					var recRes = echoParams(temp.model.properties.list.model[0], recIndex + 1);
+					def += '[' + recRes +']';
+				} else if(temp.$ref && temp.$ref.indexOf('#/definitions/PageInfo') >= 0){
+					//console.log("po:" + uparse(temp));
+					// 翻页PO
+					var recRes =  "";
+					if(temp.model){
+						recRes = echoParams(temp.model, recIndex + 1);
+					}
+					def += '{' + recRes + '}';
+				} else {
+					def += "''";
+				}
+			}
+			def += '#sub#';
+			if(temp.description){
+				// decodeURI是因为有些中文字符会莫名的乱码
+				comment += (" // " + decodeURI(temp.description));
+			}
+			res.push(def + comment);
+			res.push("\n");
+			pLength++;
+		}
+		// 最后的逗号位= 2 + (2 * pLength) - 2 = 2*pLength
+		var lastLine = res[2*pLength];
+		// 如果返回值是Page对象或类型为array都需要增加splice
+		if(((params.properties.result && params.properties.result.$ref && params.properties.result.$ref.indexOf('#/definitions/Page«') >= 0 ) || params.properties.result && params.properties.result.type === 'array')&& lastLine.indexOf('}]#sub#') > 0){
+			// 为最后为array元素结尾的增加splice
+			res[2*pLength] = lastLine.replace('#sub#', '.splice(1, 1)');
+		} else {
+			// 删除最后元素结尾的多余逗号
+			res[2*pLength] = lastLine.replace('#sub#', '');
+		}
+		
+		if(recIndex > 0){
+			res.push(getTabSpace(3 + recIndex) + "}");
+		} else {
+			res.push(getTabSpace(3) + "}");
+		}
+		
+		return res.join('').replace(/#sub#/g, ',');
+	}
+
+	function isRequiredAttr(requiredArray, attr) {
+		var res = false;
+		if(requiredArray){
+			for(var i in requiredArray){
+				if(requiredArray[i] == attr){
+					res = true;
+					break;
+				}
+			}
+		}
+		
+		return res;
+	}
+
+	function getLengthRegexResult(enumValue, isMixLength){
+		var lgtRes = enumValue.match(/(\[|\()(\d*),(\d*)(\]|\))/);
+		if(lgtRes && lgtRes.length >= 5){
+			/*// 如果是字符长度就需要把长度除以2
+			if(!isMixLength){
+				lgtRes[2] = new Number((lgtRes[2] || 0) / 2).toFixed();
+				if(lgtRes[2] < 0){
+					lgtRes[2] = 0;
+				}
+				lgtRes[3] = new Number((lgtRes[3] || 0) / 2).toFixed();
+				if(lgtRes[3] < 0){
+					lgtRes[3] = 0;
+				}
+			}*/
+			return lgtRes;
+		}
+		return;
+	}
+
+	function getLengthRuleStr(lgtRes, label, isMixLength){
+		if(lgtRes){
+			//console.log('lgtRes=' + lgtRes)
+			label = label || '';
+			var res = [];
+			res.push('{');
+			var minLength = lgtRes[2];
+			var maxLength = lgtRes[3];
+			// 如果是中括号是包含当前值
+			if(lgtRes[1] == '('){
+				// 如果是小括号则为不包含当前值 需要+1
+				// 如果最小长度是0则不用加
+				if(minLength > 0){
+					minLength++;
+				}
+			}
+			if(minLength < 0){
+				minLength = 0;
+			}
+
+			// 如果是中括号是包含当前值
+			if(lgtRes[4] === ')'){
+				// 如果是小括号则为不包含当前值 需要-1
+				// 如果最大长度是0则不用减
+				if(maxLength > 0){
+					maxLength--;
+				}
+			}
+			if(maxLength < 0){
+				maxLength = 0;
+			}
+			if(minLength <=0 && maxLength <= 0) {
+				return;
+			}
+			// 如果是混合长度就使用校验器
+			if(isMixLength){
+				res.push(' validator: this.validMixLength#sub#');
+				var mixStr = '';
+				if(minLength > 0){
+					mixStr += ('min: ' + minLength);
+				}
+				if(maxLength > 0){
+					if(mixStr.length > 0){
+						mixStr += '#sub#';
+					}
+					mixStr += (' max: ' + maxLength);
+				}
+				res.push(' param: {  label:\'' + label + '\'#sub# ' + mixStr + ' }#sub#');
+				res.push(' trigger: \'blur\'');
+			} else {
+				// 如果是字符长度就直接用min和max属性
+				// 如果大于0再进行设置最小值
+				if(minLength > 0){
+					res.push(' min:' + minLength + '#sub#');
+				}
+				if(maxLength > 0){
+					// 如果大于0再进行设置最大值
+					res.push(' max:' + maxLength + '#sub#');
+				} 
+				
+				var mess = label + '长度';
+				if(minLength > 0 && maxLength > 0){
+					mess += ('在' + minLength + '到' + maxLength + '个字符')
+				} else if(minLength > 0){
+					mess += ('最小为' + minLength +  '个字符');
+				} else {
+					mess += ('最大为' + maxLength +  '个字符');
+				}
+				res.push(' message:\'' + mess + '\'#sub#');
+				res.push(' trigger: \'blur\'');
+			}
+			
+			res.push('}');
+			return res.join('').replace(/#sub#/g, ',');
+		}
+		return;
+	}
+
+	function getRegexRuleStr(enumValue, label){
+		if(enumValue){
+			var res = [];
+			res.push('{');
+			var regexStr = enumValue.replace(/\//g, '');
+			regexStr = new RegExp(regexStr).toString();
+			res.push(' pattern:' + regexStr + '#sub#');
+			res.push(' message:\'' + label + '的值不合法' + '\'#sub#');
+			res.push(' trigger: \'blur\'');
+			res.push('}');
+			return res.join('').replace(/#sub#/g, ',');
+		}
+		return;	
+	}
+
+	function getLiveableStr(enumValue, label){
+		if(enumValue){
+			var res = [];
+			res.push('{');
+			var regexStr = '/^[';
+			var enumArray = enumValue.split(',');
+			enumArray.forEach((n, i) => {
+				regexStr += (n + '|');
+			});
+			regexStr = regexStr.substring(0, regexStr.length - 1);
+			regexStr += ']$/g';
+			res.push(' pattern:' + regexStr + '#sub#');
+			res.push(' message:\'' + label + '的值不合法' + '\'#sub#');
+			res.push(' trigger: \'blur\'');
+			res.push('}');
+			return res.join('').replace(/#sub#/g, ',');
+		}
+		return;	
+	}
+
+	function echoRules(paramModel) {
+		//console.log("paramModel=" + uparse(paramModel));
+		var res = [];
+		for(var i in paramModel.properties){
+			//console.log("i=" + uparse(i));
+			// 是否有必填项
+			var isRequired = isRequiredAttr(paramModel.required, i);
+			// 是否有有效性项
+			var hasEnums = paramModel.properties[i].enum?true:false;
+			// 有则生成规则
+			if(isRequired || hasEnums){
+				var prop = paramModel.properties[i];
+				var propType = prop.type;
+				// 如果参数类型是object则跳过(obj需要手动校验)
+				if (!propType || propType === 'object') {
+					continue;
+				}
+				var propFormat = prop.format;
+				var ruleType = null;
+				// 默认的触发事件为失去焦点blur
+				var ruleTrigg = 'blur';
+
+				// date的校验事件为change
+				if (propFormat && propFormat === 'date-time') {
+					ruleType = 'date';
+					ruleTrigg = 'change';
+				}
+
+				var oneRuleStr = '';
+				var pLabel = prop.description || i;
+				pLabel = pLabel.trim();
+
+				// 是否有空格
+				var hasSpace = pLabel.indexOf(' ');
+				if (hasSpace > 0) {
+					pLabel = pLabel.substring(0, hasSpace);
+				}
+				// 是否有逗号
+				var hasSub = pLabel.indexOf(',');
+				if (hasSub > 0) {
+					pLabel = pLabel.substring(0, hasSub);
+				}
+
+				// 是否有合法的表达式
+				var hasRules = false;
+
+				oneRuleStr += '['
+				// 是必填项
+				if(isRequired){
+					oneRuleStr += ('\n'+ getTabSpace(5) +'{ required:true, message: \'' + pLabel + '必填\', trigger: \'' + ruleTrigg + '\'');
+					// 如果需要有规则type则设置
+					if (ruleType) {
+						oneRuleStr += (',type: ' + ruleType);
+					}
+					oneRuleStr += '}';
+					hasRules = true;
+				}
+
+				var enumCount = 0;
+				// 包含有效性
+				if(hasEnums){
+					//console.log("prop=" + uparse(prop));
+					var enumAttr = prop.enum;
+					//console.log("enum=" + uparse(enumAttr));
+					if(enumAttr){
+						var enumArray = enumAttr.join(',').split(';');
+						var enumRes = [];
+						//console.log("enumArray=" + uparse(enumArray));
+						for(var j in enumArray){
+							var oneEnum = enumArray[j];
+							// 必须是xx:xx的表达式格式 字符长度-length 中英文混合长度-mixLength 正则表达式-regex 有效性-liveable
+							if(oneEnum.indexOf(':') > 0){
+								var enumMap = oneEnum.toLowerCase().split(':');
+								var enumKey = enumMap[0];
+								var enumValue = enumMap[1];
+								//console.log("enumKey=" + uparse(enumKey));
+								//console.log("enumValue=" + uparse(enumValue));
+								var lrStr = null;
+								if(enumKey === 'length') {
+									hasEnumAttr = true;
+									// 解析长度域
+									var lgtRes = getLengthRegexResult(enumValue);
+									// 生成规则字符串
+									lrStr = getLengthRuleStr(lgtRes, pLabel);
+								} else if(enumKey === 'mixlength') {
+									// 解析混合长度域
+									var lgtRes = getLengthRegexResult(enumValue);
+									// 生成规则字符串
+									lrStr = getLengthRuleStr(lgtRes, pLabel, true);
+								} else if(enumKey === 'regex') {
+									// 生成规则字符串
+									lrStr = getRegexRuleStr(enumValue, pLabel);
+								} else if(enumKey === 'liveable') {
+									// 生成规则字符串
+									lrStr = getLiveableStr(enumValue, pLabel);
+								}
+								if(lrStr){
+									enumRes.push(lrStr);
+									enumRes.push('#sub#');
+									enumRes.push('\n');
+									enumRes.push(getTabSpace(5));
+									hasRules = true;
+									enumCount++;
+								}
+							}
+						}
+						if(enumRes && enumRes.length > 0){
+							// 删除多余的逗号
+							enumRes.splice(enumRes.length - 3, 1);
+							// 替换最后5个tab为4个(一个属性结束 括号要和属性对齐)
+							enumRes.splice(enumRes.length - 1, 1, getTabSpace(4));
+							// 如果刚刚设置过必填项 则需要在后面拼接
+							if(isRequired){
+								oneRuleStr += (',\n' + getTabSpace(5));
+							} else {
+								oneRuleStr += ('\n' + getTabSpace(5));
+							}
+							oneRuleStr += (enumRes.join('').replace(/#sub#/g, ','));
+						}
+					}
+				}
+
+				if(isRequired && enumCount === 0){
+					oneRuleStr += ('\n' + getTabSpace(4));
+				}
+				if(hasRules){
+					oneRuleStr += ']';
+					res.push(i + ': ' + oneRuleStr);
+					res.push('#sub#');
+					res.push("\n");
+					res.push(getTabSpace(4));
+				}
+			} 
+		}
+		// 删除多余的逗号和多余的4个tab
+		if(res && res.length > 0){
+			res.splice(res.length - 3, 1);
+			res.splice(res.length - 1, 1);
+		}
+		//console.log("echoRules=" + uparse(res));
+		return res.join('').replace(/#sub#/g, ',');
+	}
+
+	var data = parse(uparse(locals));
+	var lowerUrl = (data.url || '').toLowerCase();
+	var isTable = null;
+	var isPage = null;
+	var isForm = data.isForm;
+	// 列表
+	if(lowerUrl.endWith('list')){
+		isTable = true;
+	}
+	// 带分页的列表
+	if(lowerUrl.endWith('page')){
+		isPage = true;
+	}
+	// form表单
+	//if(lowerUrl.startWith('update') || lowerUrl.endWith('update')){
+	//	isForm = true;
+	//}
+
+	//console.log(data.param);
+
+	var paramModel = null;
+	if(data.param){
+		paramModel = analysisDefinition(data.param.schema.$ref);
+		//console.log(uparse(paramModel));
+	}
+
+	var retModel = null;
+	if(data.ret){
+		retModel = analysisDefinition(data.ret.schema.$ref);
+		//console.log(uparse(retModel));
+	}
+_%>
+<template>
+	<div>
+		<%_ if(isTable && retModel){ _%>
+		<div>
+			<el-table :data="vo.result" ref="dataTable" border>
+				<%_ 
+					var resultType = retModel.properties.result.type;
+					var tableModel = null;
+					//console.log(resultType)
+					// 是否为数组(list)
+					if(resultType && resultType === 'array'){
+						tableModel = retModel.properties.result.model[0].properties;
+					} else {
+						// 是否为分页
+						if(retModel.properties.result.$ref && retModel.properties.result.$ref.indexOf('#/definitions/Page«') >= 0){
+							tableModel = retModel.properties.result.model.properties.list.model[0].properties;
+							// 有可能list结尾也是带Page的
+							isPage = true;
+						} else {
+							// 普通vo
+							tableModel = retModel.properties.result.model.properties;
+						}
+					}
+		
+					for(var i in tableModel) {
+						var item = tableModel[i];
+						var type = item.type || "";
+						// id列不显示 如果列值仍为json或数组，则不生成
+						if(i !== 'id' && i !== 'id' && !(type === 'object' || type === 'array')){
+							var labelContent = item.description || i; _%>
+				<el-table-column prop="<%= i %>" label="<%= labelContent %>" align="center"></el-table-column>
+					<%_ }
+					}
+				_%>
+			</el-table>
+		</div>
+		<%_ } _%>
+		<%_ if(isPage){ _%>
+		<div v-if = "po.pageInfo.count > 0">
+			<el-pagination
+				@size-change="onPageSizeChange"
+				@current-change="onPageChange"
+				:current-page.sync="po.pageInfo.pageNo"
+				:page-size="po.pageInfo.pageSize"
+				layout="prev, pager, next, jumper"
+				:total="po.pageInfo.count">
+			</el-pagination>
+		</div>
+		<%_ } _%>
+		<%_ if(isForm){ _%>
+		<div>
+			<el-form :model="po" :rules="rules" ref="dataForm" label-width="100px">
+			<%_  var paramProperties = paramModel.properties; 
+				 for (var i in paramProperties){
+					 var pType = paramProperties[i].type;
+					 // 为空或复杂类型跳过
+					 if(!pType || pType === 'object' || pType === 'array') {
+						continue;
+					 }
+					 var pLabel = paramProperties[i].description || i;
+					 pLabel = pLabel.trim();
+					 var hasSpace = pLabel.indexOf(' ');
+					 if(hasSpace > 0){
+						pLabel = pLabel.substring(0, hasSpace);
+					 }
+					 var hasSub = pLabel.indexOf(',');
+					 if(hasSub > 0){
+						pLabel = pLabel.substring(0, hasSub);
+					 }
+					 var pFormat = paramProperties[i].format;
+					 
+					 // 日期组件
+					 if(pFormat && pFormat === 'date-time'){
+			_%>
+				<el-form-item label="<%= pLabel %>" prop="<%= i %>">
+					<el-date-picker type="date" placeholder="选择日期" v-model="po.<%= i %>" style="width: 100%;"></el-date-picker>
+				</el-form-item>
+			<%_
+					 } else {
+						// 字符串组件
+			_%>
+				<el-form-item label="<%= pLabel %>" prop="<%= i %>">
+					<el-input v-model="po.<%= i %>"></el-input>
+				</el-form-item>
+			<%_		 }
+				 }
+			_%>
+			</el-form>
+		</div>
+		<%_ } _%>
+	</div>
+</template>
+<script>
+<%_ if(isPage){ _%>
+import WbfcTablePage from '../wbfc-components/WbfcTablePage';
+<%_ } else if(isTable){ _%>
+import WbfcTable from '../wbfc-components/WbfcTable';
+<%_ } else if(isForm){ _%>
+import WbfcForm from '../wbfc-components/WbfcForm';
+<%_ } _%>
+import { generateId } from 'element-ui/lib/utils/util';
+export default {
+	name: '<%= data.operationId %>',
+	<%_ if(isPage){ _%>
+	mixins: [WbfcTablePage],
+	<%_ } else if(isTable){ _%>
+	mixins: [WbfcTable],
+	<%_ } else if(isForm){ _%>
+	mixins: [WbfcForm],
+	<%_ } _%>
+	data() {
+		return {
+			id: generateId() + '_' + '<%= data.operationId %>', // id
+			url: '<%= data.url || '' %>', // 接口地址
+			<%_ if(paramModel) { _%>
+			po: <%- echoParams(paramModel) _%>,
+			<%_ } else { _%>
+			po: {},
+			<%_ } _%>
+			<%_ if(isForm) { 
+					var rulesStr = echoRules(paramModel);
+					if(rulesStr && rulesStr !== '[]'){ _%>
+			rules: {
+				<%- rulesStr _%>
+			},
+				<%_ }
+				}
+			_%>
+			<%_ if(retModel) { _%>
+			vo: <%- echoParams(retModel) _%>
+			<%_ } else { _%>
+			vo: {}
+			<%_ } %>
+		};
+	}
+}
+</script>
