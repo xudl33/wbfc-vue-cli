@@ -441,11 +441,11 @@
 	var isPage = null;
 	var isForm = data.isForm;
 	// 列表
-	if(lowerUrl.endWith('list')){
+	if(lowerUrl.endWith('list') || data.isTable){
 		isTable = true;
 	}
 	// 带分页的列表
-	if(lowerUrl.endWith('page')){
+	if(lowerUrl.endWith('page') || data.isPage){
 		isPage = true;
 	}
 	// form表单
@@ -561,13 +561,13 @@ _%>
 </template>
 <script>
 <%_ if(isPage){ _%>
-import WbfcTablePage from '../wbfc-components/WbfcTablePage';
+import WbfcTablePage from 'wbfc-components/WbfcTablePage';
 <%_ } else if(isTable){ _%>
-import WbfcTable from '../wbfc-components/WbfcTable';
+import WbfcTable from 'wbfc-components/WbfcTable';
 <%_ } else if(isForm){ _%>
-import WbfcForm from '../wbfc-components/WbfcForm';
+import WbfcForm from 'wbfc-components/WbfcForm';
 <%_ } _%>
-import { generateId } from 'element-ui/lib/utils/util';
+import WbfcUtils from 'wbfc-components/WbfcUtils';
 export default {
 	name: '<%= data.operationId %>',
 	<%_ if(isPage){ _%>
@@ -579,7 +579,7 @@ export default {
 	<%_ } _%>
 	data() {
 		return {
-			id: generateId() + '_' + '<%= data.operationId %>', // id
+			id: WbfcUtils.generateId() + '_' + '<%= data.operationId %>', // id
 			url: '<%= data.url || '' %>', // 接口地址
 			<%_ if(paramModel) { _%>
 			po: <%- echoParams(paramModel) _%>,

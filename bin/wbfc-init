@@ -1,0 +1,135 @@
+#!/usr/bin/env node
+'use strict';
+const program = require('commander');
+
+program
+  .option('-v, --overwrite', 'Overwrite wbfc-vue.json if its exists | default false')
+  .option('-c, --components', 'Overwrite required wbfc-components if it exists | default false')
+
+program.parse(process.argv)
+
+// let download = require('download-git-repo');
+let ora = require('ora');
+let fs  = require('fs');
+let fse = require('fs-extra');
+let co = require('co');
+let prompt = require('co-prompt');
+let tmpl = require('../template/wbfc-vue-tmpl');
+let path = require('path');
+let execa = require('execa');
+var over = program.overwrite || false;
+var com = program.components || false;
+// 进度条
+let spanner = null;
+
+// 如果不是文本终端的话就用不断增加的=代替进度条
+if(process.stdout.isTTY){
+    spanner = ora();
+} else {
+    spanner = ora({
+        spinner:{
+            frames: ".",
+            interval: 1000
+        },
+        isEnabled: true
+    });
+}
+
+function *confirmConf(){
+    // 分步接收用户输入的参数
+    let host = yield prompt('SwaggerUI Host: ');
+    let port = yield prompt('SwaggerUI Port: ');
+    let path = yield prompt('SwaggerUI Path: ');
+    tmpl.host = host || '';
+    tmpl.port = port || '';
+    tmpl.path = path || '/v2/api-docs';
+    let isOk = yield prompt.confirm('Your SwaggerUI Api URL = ' + tmpl.host + ':' + tmpl.port + tmpl.path + ',are you sure? (Y|N)');
+    // 如果不正确重新输入
+    if(!(isOk)){
+        yield confirmConf();
+    }
+    // 设置生成目录
+    let generatePath = yield prompt('Generate root Path: ');
+    tmpl.generatePath = generatePath || '';
+}
+
+function run() {
+
+    co(function *(){
+        //console.log("overwrite=%s", over);
+        //console.log('conf=%o', tmpl);
+        // 把模板信息写入wbfcvue.json
+        var confPath = path.join(process.cwd(), 'wbfc-vue.json');
+        //console.log("co confPath exists =%s", fse.existsSync(confPath));
+        // 文件不存在或需要覆盖
+        if(!fse.existsSync(confPath) || over){
+            // 进行输入配置
+            yield confirmConf();
+            //console.log('tmpl=%o', tmpl);
+            // 根目录创建配置文件
+            fse.writeJsonSync(confPath, tmpl, {"spaces": 4}, err => {
+                if (err) {
+                    console.log('write template with exception %o', err);
+                    process.exit();
+                }
+            });
+            console.log('wbfc-vue config file was created to %s', confPath);
+        }
+
+        var modPath =  path.join(process.cwd(), 'node_modules/wbfc-components');
+        // 如果需要下载必要的wbfc-components组件
+        if (!fse.pathExistsSync(modPath) || com) {
+            // const wbfcConf = require(confPath);
+            // console.log('Starting download wbfc-components...');
+            // // 进度条
+            // let spanner = ora();
+            // spanner.start();
+            // // 生成目录是绝对路径
+            // var genPath = wbfcConf.generatePath;
+            // // 是否为绝对目录
+            // if(!path.isAbsolute(genPath)){
+            //     // 不是绝对目录的话 设置成当前目录
+            //     genPath = path.join(process.cwd(), wbfcConf.generatePath);
+            // }
+            // var tmpPath = path.join(genPath, '/tmp');
+            // if (fse.pathExists(tmpPath)) {
+            //     // 文件路径存在则先删除原文件
+            //     fse.removeSync(tmpPath);
+            // }
+            
+            // // 从git上下载源码
+            // download('xudl33/wbfc-components', tmpPath, function(err) {
+            //     spanner.stop();
+            //     if(err) {
+            //         // 下载失败
+            //         console.log('Init is exception = %o', err);
+            //     } else {
+            //         var genCptPath = path.join(genPath, 'wbfc-components');
+            //         // 下载成功
+            //         if (fse.pathExists(genCptPath)) {
+            //             // 文件路径存在则先删除原文件
+            //             fse.removeSync(genCptPath);
+            //             fse.ensureDirSync(genCptPath);
+            //         }
+            //         // 拷贝文件夹
+            //         fse.copySync(path.join(tmpPath), genCptPath);
+            //         // 删除下载的临时文件
+            //         fse.removeSync(tmpPath);
+            //         console.log('Init is success！');
+            //     }
+            //     process.exit(0);
+            // });
+            
+            // 不下载了 因为wbfc-components独立出来 改成npm包了 直接安装就好
+            console.log('Starting install wbfc-components');
+            spanner.start();
+            
+            yield execa.shell('npm install wbfc-components');
+            spanner.succeed();
+            console.log('Init is success！');
+            process.exit();
+        }
+    })
+}
+
+run();

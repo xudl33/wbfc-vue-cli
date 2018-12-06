@@ -1,0 +1,178 @@
+#!/usr/bin/env node
+'use strict';
+const program = require('commander');
+
+program
+  .option('-v, --overwrite', 'Overwrite generated component with ***.vue if it exists');
+
+program.parse(process.argv);
+
+var act = require('./action');
+const fs = require('fs');
+const fse = require('fs-extra');
+const path = require('path');
+const ejs = require('ejs');
+var over = program.overwrite || false;
+
+function findParamsBody(parameters){
+	var res;
+	if(parameters){
+		for(var i in parameters){
+			if(parameters[i].in === 'body'){
+				res = parameters[i];
+				break;
+			}
+		}
+	}
+	return res;
+}
+
+function findResponseBody(responses){
+	if(responses){
+		return responses['200'];
+	}
+	return;
+}
+
+function generator(wbfcConf, apiDocs){
+	var genUrl = wbfcConf.genUrls;
+	//console.log("__dirname=%o", __dirname);
+	//console.log("__filename=%o", __filename);
+	for(var i in genUrl){
+		var n = genUrl[i];
+		// 必须是数组且大于0
+		if(!(n && n.length > 0)){
+			continue;
+		}
+		n.forEach((m, j) =>{
+			//console.log(apiDocs.paths[n]);
+			var genNode = null;
+			var tarUrl = null;
+			if( typeof m === 'string'){
+				tarUrl = m;
+				genNode = apiDocs.paths[m];
+			} else {
+				tarUrl = m.url;
+				genNode = apiDocs.paths[m.url];
+			}
+			
+			if(genNode){
+				var operationId = "";
+				var method = "post";
+
+				// 默认方法为post，没有的话用get
+				if(!genNode.post){
+					method = "get";
+				}
+				// id
+				//operationId = genNode[method].operationId;
+				operationId = tarUrl.replace(/\//g, '_').replace(/_[\w]/g, function(r){return r.substring(1).toUpperCase()});
+				// 入参
+				var param = findParamsBody(genNode[method].parameters);
+				// 返回值
+				var ret = findResponseBody(genNode[method].responses);
+
+				let config = {
+					url: i + ":" + tarUrl, // 动态url ‘xxx:’开头
+					operationId: operationId, // id
+					param: param, // 参数值po
+					ret: ret, // 返回值vo
+					definitions: apiDocs.definitions, // 依赖项列表
+					isForm: m.isForm // 是否为form表单
+				};
+
+				//console.log(JSON.stringify(config));
+
+				// 生成目录是绝对路径
+				var genPath = wbfcConf.generatePath;
+				// 是否为绝对目录
+				if(!path.isAbsolute(genPath)){
+					// 不是绝对目录的话 设置成当前目录
+					genPath = path.join(process.cwd(), wbfcConf.generatePath);
+				}
+				//console.log("genPath=%s", genPath);
+
+				const fPath = path.join(genPath, (m.folder || ''), operationId + '.vue');
+
+				//console.log("fPath=%s", fPath);
+				// // 组件库相对生成组件的相对路径
+				// var cptRelativePath = path.relative(fPath, path.join(genPath, 'wbfc-components')).replace(/\\/g, '/');
+				// // 设置相对路径到model
+				// config.cptRelativePath = cptRelativePath;
+
+				// 加载模板
+				const tplPath = path.join(__dirname, '../template/tpl.ejs');
+				//console.log("tplPath=%s", tplPath);
+				// 替换模板
+				const str = ejs.render(fs.readFileSync(tplPath, 'utf-8'), config, {outputFunctionName: "echo"});
+				// 文件存在
+				if (fse.existsSync(fPath)) {
+					// 需要覆盖
+					if(over) {
+						// 文件路径存在则先删除原文件
+						fse.removeSync(fPath);
+						// 确保文件被创建
+						fse.ensureFileSync(fPath);
+						fs.writeFileSync(fPath, str);
+						console.log(tarUrl + ` generate to：${fPath}`);
+					}
+				} else {
+					// 确保文件被创建
+					fse.ensureFileSync(fPath);
+					fs.writeFileSync(fPath, str);
+					console.log(tarUrl + ` generate to：${fPath}`);
+				}
+			}
+		});
+	}
+	console.log(`Generate success!`);
+	process.exit();
+}
+
+function run() {
+	// 检查配置文件是否存在
+	var confPath = path.join(__dirname, '../wbfc-vue.json');
+	if(!fse.exists(confPath)){
+		console.log('wbfc-vue.json not exists,please use command: init [-v]');
+		process.exit();
+	}
+	// 加载配置文件
+	const wbfcConf = require('../wbfc-vue.json');
+	// 生成目录是绝对路径
+	var genPath = wbfcConf.generatePath;
+	// 是否为绝对目录
+	if(!path.isAbsolute(genPath)){
+		// 不是绝对目录的话 设置成当前目录
+		genPath = path.join(process.cwd(), wbfcConf.generatePath);
+	}
+	// 检测wbfc-components是否存在
+	var genCptPath = path.join(genPath,  'wbfc-components');
+	if(!fse.pathExists(genCptPath)){
+		console.log('wbfc-components not exists,please use command: init [-v] or init -c');
+		process.exit();
+	}
+	// var genUrl = {
+	// 	security: [
+	// 		//"/i/user/userList", 
+	// 		//"/i/user/userAllList",
+	// 		{
+	// 			url: '/swaggerTest',
+	// 			isForm: true
+	// 		}
+	// 	]
+	// };
+
+	act.action({
+		host: wbfcConf.host,
+		port: wbfcConf.port,
+		path: wbfcConf.path,
+		success: function(body){
+			var apiDocs = JSON.parse(body);
+			//console.log(body);
+			generator(wbfcConf, apiDocs);
+			//generatorTest();
+		}
+	});
+}
+
+run();

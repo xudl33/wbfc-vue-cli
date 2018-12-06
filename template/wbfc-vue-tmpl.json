@@ -1,0 +1,13 @@
+{
+    "host" : "",
+    "port" : "",
+    "path" : "",
+    "generatePath": "",
+    "genUrls": {
+        "security": [],
+        "system": [],
+        "files": [],
+        "ofim": [],
+        "jpush": []  
+    }
+}
