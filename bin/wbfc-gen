@@ -96,7 +96,7 @@ function generator(wbfcConf, apiDocs){
 
 				//console.log("fPath=%s", fPath);
 				// // 组件库相对生成组件的相对路径
-				// var cptRelativePath = path.relative(fPath, path.join(genPath, 'wbfc-components')).replace(/\\/g, '/');
+				// var cptRelativePath = path.relative(fPath, path.join(genPath, 'wbfc-vue-components')).replace(/\\/g, '/');
 				// // 设置相对路径到model
 				// config.cptRelativePath = cptRelativePath;
 
@@ -145,10 +145,10 @@ function run() {
 		// 不是绝对目录的话 设置成当前目录
 		genPath = path.join(process.cwd(), wbfcConf.generatePath);
 	}
-	// 检测wbfc-components是否存在
-	var genCptPath = path.join(genPath,  'wbfc-components');
+	// 检测wbfc-vue-components是否存在
+	var genCptPath = path.join(genPath,  'wbfc-vue-components');
 	if(!fse.pathExists(genCptPath)){
-		console.log('wbfc-components not exists,please use command: init [-v] or init -c');
+		console.log('wbfc-vue-components not exists,please use command: init [-v] or init -c');
 		process.exit();
 	}
 	// var genUrl = {

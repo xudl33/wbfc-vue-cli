@@ -561,13 +561,13 @@ _%>
 </template>
 <script>
 <%_ if(isPage){ _%>
-import WbfcTablePage from 'wbfc-components/WbfcTablePage';
+import WbfcTablePage from 'wbfc-vue-components/WbfcTablePage';
 <%_ } else if(isTable){ _%>
-import WbfcTable from 'wbfc-components/WbfcTable';
+import WbfcTable from 'wbfc-vue-components/WbfcTable';
 <%_ } else if(isForm){ _%>
-import WbfcForm from 'wbfc-components/WbfcForm';
+import WbfcForm from 'wbfc-vue-components/WbfcForm';
 <%_ } _%>
-import WbfcUtils from 'wbfc-components/WbfcUtils';
+import WbfcUtils from 'wbfc-vue-components/WbfcUtils';
 export default {
 	name: '<%= data.operationId %>',
 	<%_ if(isPage){ _%>

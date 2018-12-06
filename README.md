@@ -2,7 +2,7 @@
 
 > 智源云Vue脚手架
 
-`wbfc-vue-cli`是一个基于`wbfc`架构的vue脚手架。它可以利用服务端接口文档`SwaggerUI`中的链接，自动生成接口对应的`Table`、`Pagination`和`Form`等组件。生成的Vue组件有着统一的依赖 [wbfc-components(智源云组件库)](https://github.com/xudl33/wbfc-components)
+`wbfc-vue-cli`是一个基于`wbfc`架构的vue脚手架。它可以利用服务端接口文档`SwaggerUI`中的链接，自动生成接口对应的`Table`、`Pagination`和`Form`等组件。生成的Vue组件有着统一的依赖 [wbfc-vue-components(智源云组件库)](https://github.com/xudl33/wbfc-vue-components)
 
 ## 安装
 ```code
@@ -49,8 +49,16 @@ Options:
   -V, --version  output the version number
   -h, --help     output usage information
 Commands:
-  init           create a new wbfc-vue's config file named wbfc-vue.json and download required wbfc-components
+  init           create a new wbfc-vue's config file named wbfc-vue.json and download required wbfc-vue-components
   gen            generater wbfc-vue compenents with wbfcvue.json config
   wait           spanner
   help [cmd]     display help for [cmd]
 ```
+
+## Versions
+版本|更新时间|更新说明
+---|---|---
+1.0.0 | 2018/12/05 | 完成`wbfc-vue-cli`的基础功能
+1.0.1 | 2018/12/06 | 增加README.md
+1.0.2 | 2018/12/06 | `wbfc-components`更名为`wbfc-vue-components`
+1.0.3 | 2018/12/06 | 修正模板替换`wbfc-vue-components`不正确的问题

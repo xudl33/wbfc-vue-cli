@@ -4,7 +4,7 @@ const program = require('commander');
 
 program
   .option('-v, --overwrite', 'Overwrite wbfc-vue.json if its exists | default false')
-  .option('-c, --components', 'Overwrite required wbfc-components if it exists | default false')
+  .option('-c, --components', 'Overwrite required wbfc-vue-components if it exists | default false')
 
 program.parse(process.argv)
 
@@ -45,7 +45,7 @@ function *confirmConf(){
     tmpl.path = path || '/v2/api-docs';
     let isOk = yield prompt.confirm('Your SwaggerUI Api URL = ' + tmpl.host + ':' + tmpl.port + tmpl.path + ',are you sure? (Y|N)');
     // 如果不正确重新输入
-    if(!(isOk)){
+    if(!isOk){
         yield confirmConf();
     }
     // 设置生成目录
@@ -76,11 +76,11 @@ function run() {
             console.log('wbfc-vue config file was created to %s', confPath);
         }
 
-        var modPath =  path.join(process.cwd(), 'node_modules/wbfc-components');
-        // 如果需要下载必要的wbfc-components组件
+        var modPath =  path.join(process.cwd(), 'node_modules/wbfc-vue-components');
+        // 如果需要下载必要的wbfc-vue-components组件
         if (!fse.pathExistsSync(modPath) || com) {
             // const wbfcConf = require(confPath);
-            // console.log('Starting download wbfc-components...');
+            // console.log('Starting download wbfc-vue-components...');
             // // 进度条
             // let spanner = ora();
             // spanner.start();
@@ -98,13 +98,13 @@ function run() {
             // }
             
             // // 从git上下载源码
-            // download('xudl33/wbfc-components', tmpPath, function(err) {
+            // download('xudl33/wbfc-vue-components', tmpPath, function(err) {
             //     spanner.stop();
             //     if(err) {
             //         // 下载失败
             //         console.log('Init is exception = %o', err);
             //     } else {
-            //         var genCptPath = path.join(genPath, 'wbfc-components');
+            //         var genCptPath = path.join(genPath, 'wbfc-vue-components');
             //         // 下载成功
             //         if (fse.pathExists(genCptPath)) {
             //             // 文件路径存在则先删除原文件
@@ -120,11 +120,11 @@ function run() {
             //     process.exit(0);
             // });
             
-            // 不下载了 因为wbfc-components独立出来 改成npm包了 直接安装就好
-            console.log('Starting install wbfc-components');
+            // 不下载了 因为wbfc-vue-components独立出来 改成npm包了 直接安装就好
+            console.log('Starting install wbfc-vue-components');
             spanner.start();
             
-            yield execa.shell('npm install wbfc-components');
+            yield execa.shell('npm install wbfc-vue-components');
             spanner.succeed();
             console.log('Init is success！');
             process.exit();

@@ -8,14 +8,14 @@ const tpmHandler = require('../bin/tpm.js');*/
 program
   .version(packageJson.version)
   .usage('<command> [options]') // 使用命令格式
-  .command('init', 'create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-components')
-  .command('gen', "generater wbfc-vue compenents with wbfcvue.json config");
+  .command('init', 'create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-vue-components')
+  .command('gen', "generater wbfc-vue compenents with wbfc-vue.json config");
 
 // 之前这样的单独写法不能正确的显示help信息，所以改成上面的写法了
-/*program.command('init', 'create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-components')
+/*program.command('init', 'create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-vue-components')
   .option('-v, --overwrite', 'Overwrite wbfc-vue.json if its exists | default false')
-  .option('-c, --components', 'Overwrite required wbfc-components if it exists | default true')
-  .description('create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-components')
+  .option('-c, --components', 'Overwrite required wbfc-vue-components if it exists | default true')
+  .description('create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-vue-components')
   .action((cmd) => {
     // const args = {}
     // cmd.options.forEach(o => {
