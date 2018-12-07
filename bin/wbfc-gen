@@ -131,13 +131,14 @@ function generator(wbfcConf, apiDocs){
 
 function run() {
 	// 检查配置文件是否存在
-	var confPath = path.join(__dirname, '../wbfc-vue.json');
+	var confPath = path.join(process.cwd(), 'wbfc-vue.json');
+	//console.log("confPath=%s", confPath);
 	if(!fse.exists(confPath)){
 		console.log('wbfc-vue.json not exists,please use command: init [-v]');
 		process.exit();
 	}
 	// 加载配置文件
-	const wbfcConf = require('../wbfc-vue.json');
+	const wbfcConf = require(confPath);
 	// 生成目录是绝对路径
 	var genPath = wbfcConf.generatePath;
 	// 是否为绝对目录
