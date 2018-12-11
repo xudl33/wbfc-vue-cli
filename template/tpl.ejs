@@ -520,7 +520,7 @@ _%>
 										var lrStr = null;
 										if(enumKey === 'dict') {
 											_%>
-					<template slot-scope="{scope}">
+					<template slot-scope="scope">
 						{{'<%=enumValue %>' | val2Lab(scope.row.<%= i %>)}}
 					</template>
 											<%_
