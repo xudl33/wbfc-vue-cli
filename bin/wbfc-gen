@@ -78,7 +78,9 @@ function generator(wbfcConf, apiDocs){
 					param: param, // 参数值po
 					ret: ret, // 返回值vo
 					definitions: apiDocs.definitions, // 依赖项列表
-					isForm: m.isForm // 是否为form表单
+					isForm: m.isForm, // 是否为form表单
+					isTable: m.isTable, // 是否为表格
+					isPage: m.isPage // 是否为表格带分页
 				};
 
 				//console.log(JSON.stringify(config));

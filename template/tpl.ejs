@@ -362,7 +362,7 @@
 						//console.log("enumArray=" + uparse(enumArray));
 						for(var j in enumArray){
 							var oneEnum = enumArray[j];
-							// 必须是xx:xx的表达式格式 字符长度-length 中英文混合长度-mixLength 正则表达式-regex 有效性-liveable
+							// 必须是xx:xx的表达式格式 字符长度-length 中英文混合长度-mixLength 正则表达式-regex 有效性-liveable 数据字典-dict
 							if(oneEnum.indexOf(':') > 0){
 								var enumMap = oneEnum.toLowerCase().split(':');
 								var enumKey = enumMap[0];
@@ -444,6 +444,7 @@
 	if(lowerUrl.endWith('list') || data.isTable){
 		isTable = true;
 	}
+	//console.log("isTable=%s", data.isTable);
 	// 带分页的列表
 	if(lowerUrl.endWith('page') || data.isPage){
 		isPage = true;
@@ -475,7 +476,7 @@ _%>
 				<%_ 
 					var resultType = retModel.properties.result.type;
 					var tableModel = null;
-					//console.log(resultType)
+					//console.log("resultType=%s", resultType);
 					// 是否为数组(list)
 					if(resultType && resultType === 'array'){
 						tableModel = retModel.properties.result.model[0].properties;
@@ -490,6 +491,7 @@ _%>
 							tableModel = retModel.properties.result.model.properties;
 						}
 					}
+					//console.log("tableModel=%o", tableModel);
 		
 					for(var i in tableModel) {
 						var item = tableModel[i];
@@ -497,7 +499,38 @@ _%>
 						// id列不显示 如果列值仍为json或数组，则不生成
 						if(i !== 'id' && i !== 'id' && !(type === 'object' || type === 'array')){
 							var labelContent = item.description || i; _%>
-				<el-table-column prop="<%= i %>" label="<%= labelContent %>" align="center"></el-table-column>
+				<el-table-column prop="<%= i %>" label="<%= labelContent %>" align="center">
+					<%_
+						var hasEnums = item.enum?true:false;
+						if(hasEnums){
+							var enumAttr = item.enum;
+							if(enumAttr){
+								var enumArray = enumAttr.join(',').split(';');
+								var enumRes = [];
+								
+								for(var j in enumArray){
+									var oneEnum = enumArray[j];
+									// 必须是xx:xx的表达式格式 字符长度-length 中英文混合长度-mixLength 正则表达式-regex 有效性-liveable 数据字典-dict
+									if(oneEnum.indexOf(':') > 0){
+										var enumMap = oneEnum.toLowerCase().split(':');
+										var enumKey = enumMap[0];
+										var enumValue = enumMap[1];
+										//console.log("enumKey=" + uparse(enumKey));
+										//console.log("enumValue=" + uparse(enumValue));
+										var lrStr = null;
+										if(enumKey === 'dict') {
+											_%>
+					<template slot-scope="{scope}">
+						{{'<%=enumValue %>' | val2Lab(scope.row.<%= i %>)}}
+					</template>
+											<%_
+										}
+									}
+								}
+							}
+						}
+					_%>
+				</el-table-column>
 					<%_ }
 					}
 				_%>

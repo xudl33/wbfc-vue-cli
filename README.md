@@ -63,3 +63,4 @@ Commands:
 1.0.2 | 2018/12/06 | `wbfc-components`更名为`wbfc-vue-components`
 1.0.3 | 2018/12/06 | 修正模板替换`wbfc-vue-components`不正确的问题
 1.0.4 | 2018/12/07 | 修正读取配置文件为当前目录的错误
+1.0.5 | 2018/12/11 | 修正isTable和isPage添加参数不正确的问题;增加WbfcDicts数据字典相关功能；
