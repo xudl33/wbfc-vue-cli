@@ -9,7 +9,7 @@ program
   .version(packageJson.version)
   .usage('<command> [options]') // 使用命令格式
   .command('init', 'create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-vue-components')
-  .command('gen', "generater wbfc-vue compenents with wbfc-vue.json config");
+  .command('gen', "generater wbfc-vue compenents and ActionPaths.json static constant paths JSON file with wbfc-vue.json config");
 
 // 之前这样的单独写法不能正确的显示help信息，所以改成上面的写法了
 /*program.command('init', 'create a new wbfc-vue\'s config file named wbfc-vue.json and download required wbfc-vue-components')
