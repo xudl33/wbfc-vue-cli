@@ -102,6 +102,34 @@ function generator(wbfcConf, apiDocs){
 				// // 设置相对路径到model
 				// config.cptRelativePath = cptRelativePath;
 
+				var actVar = (i + tarUrl.replace(/\//g, '_')).toUpperCase();
+				// actionpath常量配置文件位置
+				var actPath = path.join(process.cwd(), 'ActionPaths.json');
+				var actionPathsJson = {};
+				// 设置actionPath
+				config.actionPath = actVar;
+				// 如果文件存在就读取
+				if(fse.existsSync(actPath)){
+					var tempJson = fse.readJSONSync(actPath);
+					// 如果已经存在 说明url重复 如果不是覆盖生成的话 就报错
+					if(tempJson[actVar] && !over){
+						console.log('ActionPaths\'s url = %s is not allow repeat', config.url);
+						process.exit();
+					}
+					// 写入
+					actionPathsJson = tempJson;
+				}
+				// 设置
+				actionPathsJson[actVar] = config.url;
+				
+				// 根目录写入常量配置文件
+				fse.writeJsonSync(actPath, actionPathsJson, {"spaces" : 4}, err => {
+					if (err) {
+						console.log('write template with exception %o', err);
+						process.exit();
+					}
+				});
+
 				// 加载模板
 				const tplPath = path.join(__dirname, '../template/tpl.ejs');
 				//console.log("tplPath=%s", tplPath);
@@ -136,7 +164,7 @@ function run() {
 	var confPath = path.join(process.cwd(), 'wbfc-vue.json');
 	//console.log("confPath=%s", confPath);
 	if(!fse.exists(confPath)){
-		console.log('wbfc-vue.json not exists,please use command: init [-v]');
+		console.log('wbfc-vue.json not exists, please use command: init [-v]');
 		process.exit();
 	}
 	// 加载配置文件
@@ -151,7 +179,7 @@ function run() {
 	// 检测wbfc-vue-components是否存在
 	var genCptPath = path.join(genPath,  'wbfc-vue-components');
 	if(!fse.pathExists(genCptPath)){
-		console.log('wbfc-vue-components not exists,please use command: init [-v] or init -c');
+		console.log('wbfc-vue-components not exists, please use command: init [-v] or init -c');
 		process.exit();
 	}
 	// var genUrl = {
@@ -178,4 +206,9 @@ function run() {
 	});
 }
 
-run();
+try{
+	run();
+} catch(e) {
+	console.log(e);
+	process.exit();
+}

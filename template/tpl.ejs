@@ -601,6 +601,7 @@ import WbfcTable from 'wbfc-vue-components/WbfcTable';
 import WbfcForm from 'wbfc-vue-components/WbfcForm';
 <%_ } _%>
 import WbfcUtils from 'wbfc-vue-components/WbfcUtils';
+import ActionPaths from '@/../ActionPaths'
 export default {
 	name: '<%= data.operationId %>',
 	<%_ if(isPage){ _%>
@@ -613,7 +614,7 @@ export default {
 	data() {
 		return {
 			id: WbfcUtils.generateId() + '_' + '<%= data.operationId %>', // id
-			url: '<%= data.url || '' %>', // 接口地址
+			url: ActionPaths.<%= data.actionPath || '' %>, // 接口地址
 			<%_ if(paramModel) { _%>
 			po: <%- echoParams(paramModel) _%>,
 			<%_ } else { _%>

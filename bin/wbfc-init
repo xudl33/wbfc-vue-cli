@@ -132,4 +132,10 @@ function run() {
     })
 }
 
-run();
+try{
+	run();
+} catch(e) {
+    spanner.fail();
+    console.log(e);
+	process.exit();
+}
