@@ -40,12 +40,13 @@ function generator(wbfcConf, apiDocs){
 	//console.log("__filename=%o", __filename);
 	for(var i in genUrl){
 		var n = genUrl[i];
+		//console.log(apiDocs.paths[n]);
 		// 必须是数组且大于0
 		if(!(n && n.length > 0)){
 			continue;
 		}
-		n.forEach((m, j) =>{
-			//console.log(apiDocs.paths[n]);
+		for(var j in n){
+			var m = n[j];
 			var genNode = null;
 			var tarUrl = null;
 			if( typeof m === 'string'){
@@ -111,10 +112,10 @@ function generator(wbfcConf, apiDocs){
 				// 如果文件存在就读取
 				if(fse.existsSync(actPath)){
 					var tempJson = fse.readJSONSync(actPath);
-					// 如果已经存在 说明url重复 如果不是覆盖生成的话 就报错
+					// 如果已经存在 说明url重复 如果不是覆盖生成的话 就跳过
 					if(tempJson[actVar] && !over){
-						console.log('ActionPaths\'s url = %s is not allow repeat', config.url);
-						process.exit();
+						console.log('ActionPaths\'s url = %s is repeated skiped!', config.url);
+						continue;
 					}
 					// 写入
 					actionPathsJson = tempJson;
@@ -153,7 +154,7 @@ function generator(wbfcConf, apiDocs){
 					console.log(tarUrl + ` generate to：${fPath}`);
 				}
 			}
-		});
+		}
 	}
 	console.log(`Generate success!`);
 	process.exit();

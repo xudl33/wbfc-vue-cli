@@ -74,7 +74,7 @@
 		return tabs;
 	}
 	function echoParams(params, recIndex){
-		//console.log("echoParams=" + uparse(params));
+		console.log("echoParams=" + uparse(params));
 		if(!recIndex){
 			recIndex = 0;
 		}
@@ -91,7 +91,11 @@
 			var def = getTabSpace(4, recIndex) + i + ": ";
 			var comment = "";
 			if(temp.type === 'array') {
-				var recRes = echoParams(temp.model[0], recIndex + 1);
+				var recRes = '';
+				// 有可能返回List泛型为基本类型
+				if(temp.items && temp.items.$ref && temp.model){
+					recRes = echoParams(temp.model[0], recIndex + 1);
+				}
 				def += '[' + recRes +']';
 			} else if(temp.type === 'object'){
 				var recRes =  "";
