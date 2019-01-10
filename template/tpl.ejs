@@ -503,7 +503,12 @@ _%>
 						var type = item.type || "";
 						// id列不显示 如果列值仍为json或数组，则不生成
 						if(i !== 'id' && i !== 'id' && !(type === 'object' || type === 'array')){
-							var labelContent = item.description || i; _%>
+							var labelContent = item.description || i;
+							labelContent = labelContent.trim();
+							var hasSpace = labelContent.indexOf(' ');
+							if(hasSpace > 0){
+								labelContent = labelContent.substring(0, hasSpace);
+							} _%>
 				<el-table-column prop="<%= i %>" label="<%= labelContent %>" align="center">
 					<%_
 						var hasEnums = item.enum?true:false;
