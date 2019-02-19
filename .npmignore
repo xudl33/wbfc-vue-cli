@@ -26,3 +26,4 @@ test/
 .postcssrc.js
 index.html
 wbfc-vue.json
+package-lock.json

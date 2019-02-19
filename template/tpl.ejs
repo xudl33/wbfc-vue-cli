@@ -645,6 +645,11 @@ export default {
 			vo: {}
 			<%_ } %>
 		};
+	},
+	<%_ if(isPage || isTable){ _%>
+	mounted(){
+		this.flush();
 	}
+	<%_ } _%>
 }
 </script>
